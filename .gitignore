@@ -30,6 +30,9 @@ compile_commands.json
 Thumbs.db
 desktop.ini
 
+# Local workstation-specific Unreal Engine SDK paths
+Config/UserEngine.ini
+
 # Packaged builds & logs
 *.apk
 *.aab

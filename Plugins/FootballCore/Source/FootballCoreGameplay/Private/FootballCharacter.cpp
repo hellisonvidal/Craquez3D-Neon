@@ -10,6 +10,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/SphereComponent.h"
 #include "MotionWarpingComponent.h"
 #include "EngineUtils.h"
 
@@ -447,10 +448,10 @@ void AFootballCharacter::Input_CycleWeather()
 {
 	if (UWorld* World = GetWorld())
 	{
-		for (TActorIterator<AFootballWeatherAndAudioManager> It(World); It; ++It)
+		TActorIterator<AFootballWeatherAndAudioManager> It(World);
+		if (It)
 		{
 			It->CycleNextWeather();
-			break;
 		}
 	}
 }
@@ -469,7 +470,8 @@ AFootballBallActor* AFootballCharacter::GetMatchBall() const
 	}
 	if (UWorld* World = GetWorld())
 	{
-		for (TActorIterator<AFootballBallActor> It(World); It; ++It)
+		TActorIterator<AFootballBallActor> It(World);
+		if (It)
 		{
 			CachedBall = *It;
 			return *It;

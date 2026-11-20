@@ -11,7 +11,7 @@ param(
     [string]$EngineRoot = "C:\Program Files\Epic Games\UE_5.8",
     [string]$AndroidSdk = "",
     [string]$NdkRoot    = "",
-    [string]$JavaHome   = "C:\Program Files\Android\Android Studio\jbr",
+    [string]$JavaHome   = "C:\Program Files\Android\openjdk\jdk-21.0.8",
     [string]$ReleaseTag = "ue5-v0.1.0-android",
     [switch]$PublishRelease
 )

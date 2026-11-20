@@ -20,12 +20,10 @@ AFootballBallActor::AFootballBallActor()
 
 	CollisionSphere = CreateDefaultSubobject<USphereComponent>(TEXT("BallCollisionSphere"));
 	CollisionSphere->InitSphereRadius(AeroConfig.RadiusCm);
-	CollisionSphere->SetSimulatePhysics(true);
 	CollisionSphere->SetEnableGravity(true);
 	CollisionSphere->SetCollisionProfileName(TEXT("PhysicsActor"));
 	CollisionSphere->SetNotifyRigidBodyCollision(true);
 	CollisionSphere->BodyInstance.bUseCCD = true; // Continuous Collision Detection prevents high-speed tunneling
-	CollisionSphere->SetMassOverrideInKg(NAME_None, AeroConfig.MassKg, true);
 	CollisionSphere->SetLinearDamping(0.02f);  // Aerodynamic drag is handled explicitly by quadratic formula
 	CollisionSphere->SetAngularDamping(0.05f); // Spin decay handled explicitly
 	RootComponent = CollisionSphere;
@@ -50,6 +48,7 @@ void AFootballBallActor::BeginPlay()
 	Super::BeginPlay();
 
 	CollisionSphere->SetSphereRadius(AeroConfig.RadiusCm);
+	CollisionSphere->SetSimulatePhysics(true);
 	CollisionSphere->SetMassOverrideInKg(NAME_None, AeroConfig.MassKg, true);
 	CollisionSphere->OnComponentHit.AddDynamic(this, &AFootballBallActor::HandleBallHit);
 
