@@ -69,13 +69,15 @@ jobs:
             assert "BuildSettingsVersion.V7" in txt, f"{t} missing BuildSettingsVersion.V7"
             assert "EngineIncludeOrderVersion.Unreal5_8" in txt, f"{t} missing Unreal5_8"
 
-          # Static guard: ensure no Blueprint-incompatible int16/int8 properties sneak back in
+          # Static guard: ensure no Blueprint-incompatible int8/int16/uint16/uint32 properties sneak back in
+          import re
+          bad_bp_type = re.compile(r"\b(int8|int16|uint16|uint32)\b")
           for hdr in pathlib.Path("Plugins/FootballCore").rglob("*.h"):
             lines = hdr.read_text().splitlines()
             for i, line in enumerate(lines):
               if "BlueprintReadWrite" in line or "BlueprintReadOnly" in line:
                 next_line = lines[i + 1] if i + 1 < len(lines) else ""
-                assert "int16 " not in next_line and "int8 " not in next_line, \
+                assert not bad_bp_type.search(next_line), \
                   f"Blueprint-incompatible type in {hdr}:{i+2}: {next_line}"
 
           print(f"OK: All {len(required_files)} required files, UE 5.8 rules & Blueprint safety checks passed!")

@@ -420,7 +420,7 @@ FFootballDeterministicBallState AFootballBallActor::CaptureDeterministicState() 
 	State.Position = FFootballQuantizedVector::FromFVector(GetActorLocation());
 	State.LinearVelocity = FFootballQuantizedVector::FromFVector(GetBallVelocity());
 	State.AngularVelocityRad = FFootballQuantizedVector::FromFVector(GetBallSpinRadPerSec());
-	State.bIsGrounded = IsBallGrounded() ? 1 : 0;
+	State.bIsGrounded = IsBallGrounded();
 	State.LastTouchPlayerId = LastTouchPlayerId;
 	return State;
 }

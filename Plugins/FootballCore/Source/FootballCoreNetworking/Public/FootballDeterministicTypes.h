@@ -95,7 +95,7 @@ struct FOOTBALLCORENETWORKING_API FFootballDeterministicBallState
 	FFootballQuantizedVector AngularVelocityRad;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Football|Networking")
-	uint8 bIsGrounded = 1;
+	bool bIsGrounded = true;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Football|Networking")
 	int32 LastTouchPlayerId = -1;
@@ -107,7 +107,12 @@ struct FOOTBALLCORENETWORKING_API FFootballDeterministicBallState
 		Position.NetSerialize(Ar, Map, bPosOk);
 		LinearVelocity.NetSerialize(Ar, Map, bVelOk);
 		AngularVelocityRad.NetSerialize(Ar, Map, bAngOk);
-		Ar << bIsGrounded;
+		uint8 GroundedByte = bIsGrounded ? 1 : 0;
+		Ar << GroundedByte;
+		if (Ar.IsLoading())
+		{
+			bIsGrounded = (GroundedByte != 0);
+		}
 		Ar << LastTouchPlayerId;
 		bOutSuccess = bPosOk && bVelOk && bAngOk && !Ar.IsError();
 		return true;
@@ -120,7 +125,7 @@ struct FOOTBALLCORENETWORKING_API FFootballDeterministicBallState
 		Hash = (Hash ^ Position.ComputeHash()) * 16777619u;
 		Hash = (Hash ^ LinearVelocity.ComputeHash()) * 16777619u;
 		Hash = (Hash ^ AngularVelocityRad.ComputeHash()) * 16777619u;
-		Hash = (Hash ^ static_cast<uint32>(bIsGrounded)) * 16777619u;
+		Hash = (Hash ^ static_cast<uint32>(bIsGrounded ? 1u : 0u)) * 16777619u;
 		return Hash;
 	}
 };
