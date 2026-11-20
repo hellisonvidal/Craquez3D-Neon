@@ -1,0 +1,90 @@
+name: Craquez CI — Project, Plugin & Assets Validation
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  validate-ue5-project:
+    name: Validate UE 5.8.4 Structure, FootballCore & Shaders
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Craquez3D-Neon
+        uses: actions/checkout@v4
+
+      - name: Validate JSON Descriptors (.uproject & FootballCore.uplugin)
+        run: |
+          python3 - << 'EOF'
+          import json, pathlib, sys
+
+          uproj = json.loads(pathlib.Path("Craquez.uproject").read_text())
+          assert uproj["EngineAssociation"] == "5.8", f"Expected UE 5.8, got {uproj['EngineAssociation']}"
+          plugin_names = {p["Name"] for p in uproj["Plugins"] if p.get("Enabled")}
+          required_plugins = {"FootballCore", "StateTree", "GameplayStateTree", "Niagara", "PCG", "MotionWarping", "ControlRig", "ChaosCloth"}
+          missing = required_plugins - plugin_names
+          assert not missing, f"Missing required plugins in Craquez.uproject: {missing}"
+
+          uplug = json.loads(pathlib.Path("Plugins/FootballCore/FootballCore.uplugin").read_text())
+          mod_names = {m["Name"] for m in uplug["Modules"]}
+          expected_mods = {"FootballCoreNetworking", "FootballCoreGameplay", "FootballCoreAI", "FootballCoreUI"}
+          assert expected_mods.issubset(mod_names), f"Missing FootballCore modules: {expected_mods - mod_names}"
+          print("OK: Craquez.uproject & FootballCore.uplugin validated for UE 5.8.4!")
+          EOF
+
+      - name: Validate Build.cs, Target.cs, Shaders & 3D Kit FBX Meshes
+        run: |
+          python3 - << 'EOF'
+          import pathlib
+
+          required_files = [
+            "Source/Craquez.Target.cs",
+            "Source/CraquezEditor.Target.cs",
+            "Source/Craquez/Craquez.Build.cs",
+            "Plugins/FootballCore/Source/FootballCoreNetworking/FootballCoreNetworking.Build.cs",
+            "Plugins/FootballCore/Source/FootballCoreGameplay/FootballCoreGameplay.Build.cs",
+            "Plugins/FootballCore/Source/FootballCoreAI/FootballCoreAI.Build.cs",
+            "Plugins/FootballCore/Source/FootballCoreUI/FootballCoreUI.Build.cs",
+            "Plugins/FootballCore/Shaders/FootballGPUGrass.usf",
+            "Plugins/FootballCore/Shaders/FootballBallDeformationWPO.usf",
+            "Plugins/FootballCore/Shaders/FootballGPUCrowdVAT.usf",
+            "Art/GeneratedFBX/SM_Craquez_Jersey.fbx",
+            "Art/GeneratedFBX/SM_Craquez_Shorts.fbx",
+            "Art/GeneratedFBX/SM_Craquez_Socks.fbx",
+            "Art/GeneratedFBX/SM_Craquez_Boots.fbx",
+            "Art/GeneratedFBX/SM_Craquez_Ball.fbx",
+            "Tools/build_and_release_android_apk.ps1",
+          ]
+
+          for f in required_files:
+            p = pathlib.Path(f)
+            assert p.exists() and p.stat().st_size > 0, f"Missing or empty required file: {f}"
+
+          # Verify UE 5.8.4 TargetRules version
+          for t in ["Source/Craquez.Target.cs", "Source/CraquezEditor.Target.cs"]:
+            txt = pathlib.Path(t).read_text()
+            assert "BuildSettingsVersion.V7" in txt, f"{t} missing BuildSettingsVersion.V7"
+            assert "EngineIncludeOrderVersion.Unreal5_8" in txt, f"{t} missing Unreal5_8"
+
+          # Static guard: ensure no Blueprint-incompatible int16/int8 properties sneak back in
+          for hdr in pathlib.Path("Plugins/FootballCore").rglob("*.h"):
+            lines = hdr.read_text().splitlines()
+            for i, line in enumerate(lines):
+              if "BlueprintReadWrite" in line or "BlueprintReadOnly" in line:
+                next_line = lines[i + 1] if i + 1 < len(lines) else ""
+                assert "int16 " not in next_line and "int8 " not in next_line, \
+                  f"Blueprint-incompatible type in {hdr}:{i+2}: {next_line}"
+
+          print(f"OK: All {len(required_files)} required files, UE 5.8 rules & Blueprint safety checks passed!")
+          EOF
+
+      - name: Check Android Config Readiness
+        run: |
+          grep -q "bBuildForArm64=True" Config/DefaultEngine.ini
+          grep -q "bSupportsVulkan=True" Config/DefaultEngine.ini
+          grep -q "bPackageDataInsideApk=True" Config/DefaultEngine.ini
+          grep -q "TargetSDKVersion=36" Config/DefaultEngine.ini
+          echo "OK: Android ARM64 Vulkan/APK packaging config verified!"

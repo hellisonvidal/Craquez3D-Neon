@@ -1,0 +1,138 @@
+name: Craquez Android APK Build & Release (UE 5.8.4)
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version_tag:
+        description: 'Tag da versão da Release (ex: v0.1.0-android-pilot)'
+        required: true
+        default: 'v0.1.0-android-pilot'
+      build_config:
+        description: 'Configuração de build UE 5.8.4'
+        required: true
+        type: choice
+        default: Development
+        options:
+          - Development
+          - Shipping
+      ue_root:
+        description: 'Caminho da instalação da UE 5.8.4 no runner'
+        required: false
+        default: 'C:\Program Files\Epic Games\UE_5.8'
+
+permissions:
+  contents: write
+
+jobs:
+  build-android-apk:
+    name: Build Craquez ARM64 APK (ASTC / Vulkan)
+    # Requer um runner self-hosted Windows com UE 5.8.4 + Android Target Platform + Android NDK r27c
+    # Veja Docs/GITHUB_ACTIONS_ANDROID.md para conectar seu PC em 1 minuto!
+    runs-on: [self-hosted, windows]
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout Craquez3D-Neon
+        uses: actions/checkout@v4
+
+      - name: Validate UE 5.8.4 & Android SDK/NDK Environment
+        shell: pwsh
+        run: |
+          $ueRoot = "${{ github.event.inputs.ue_root || 'C:\Program Files\Epic Games\UE_5.8' }}"
+          $sdk    = if ($env:ANDROID_HOME) { $env:ANDROID_HOME } else { "$env:LOCALAPPDATA\Android\Sdk" }
+          $jbr    = if ($env:JAVA_HOME) { $env:JAVA_HOME } else { "C:\Program Files\Android\Android Studio\jbr" }
+
+          if (!(Test-Path "$ueRoot\Engine\Build\BatchFiles\RunUAT.bat")) {
+            throw "UE 5.8.4 nao encontrada em: $ueRoot"
+          }
+          if (!(Test-Path "$ueRoot\Engine\Binaries\Android")) {
+            throw "Plataforma Android nao instalada na UE 5.8.4! Ative em: Epic Games Launcher -> UE 5.8.4 -> Opcoes -> Target Platforms -> Android."
+          }
+
+          $ndkDir = Get-ChildItem "$sdk\ndk" -Directory -ErrorAction SilentlyContinue | Sort-Object Name -Descending | Select-Object -First 1
+          if (!$ndkDir) {
+            throw "Android NDK nao encontrado em $sdk\ndk! Instale NDK 27.2.12479018, API 36 e CMake 3.22.1 no Android Studio SDK Manager."
+          }
+
+          "UE_ROOT=$ueRoot" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "ANDROID_HOME=$sdk" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "ANDROID_SDK_ROOT=$sdk" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "NDKROOT=$($ndkDir.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "ANDROID_NDK_ROOT=$($ndkDir.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append
+          if (Test-Path $jbr) {
+            "JAVA_HOME=$jbr" | Out-File -FilePath $env:GITHUB_ENV -Append
+          }
+
+          Write-Host "Ambiente validado com sucesso!"
+          Write-Host "UE_ROOT=$ueRoot"
+          Write-Host "ANDROID_HOME=$sdk"
+          Write-Host "NDKROOT=$($ndkDir.FullName)"
+
+      - name: Build, Cook & Package Craquez Android APK (ARM64 ASTC)
+        shell: pwsh
+        run: |
+          $config = "${{ github.event.inputs.build_config || 'Development' }}"
+          $archiveDir = Join-Path $env:GITHUB_WORKSPACE "Build\Android_ASTC"
+          New-Item -ItemType Directory -Force -Path $archiveDir | Out-Null
+
+          & "$env:UE_ROOT\Engine\Build\BatchFiles\RunUAT.bat" BuildCookRun `
+            "-project=$env:GITHUB_WORKSPACE\Craquez.uproject" `
+            -noP4 `
+            -platform=Android `
+            -cookflavor=ASTC `
+            "-clientconfig=$config" `
+            -build -cook -allmaps -stage -pak -archive `
+            "-archivedirectory=$archiveDir"
+
+          $apk = Get-ChildItem $archiveDir -Recurse -Filter "*.apk" | Select-Object -First 1
+          if (!$apk) {
+            throw "Nenhum arquivo .apk encontrado em $archiveDir apos BuildCookRun!"
+          }
+
+          $releaseApk = Join-Path $archiveDir "Craquez-Android-ARM64.apk"
+          Copy-Item $apk.FullName $releaseApk -Force
+          "APK_PATH=$releaseApk" | Out-File -FilePath $env:GITHUB_ENV -Append
+          Write-Host "APK pronto: $releaseApk ($($apk.Length) bytes)"
+
+      - name: Upload Android APK as GitHub Actions Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Craquez-Android-ARM64-APK
+          path: ${{ env.APK_PATH }}
+          retention-days: 30
+
+      - name: Determine Release Tag
+        id: tag
+        shell: pwsh
+        run: |
+          if ("${{ github.ref_type }}" -eq "tag") {
+            $tagName = "${{ github.ref_name }}"
+          } else {
+            $tagName = "${{ github.event.inputs.version_tag || 'v0.1.0-android-pilot' }}"
+          }
+          "name=$tagName" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Publish GitHub Release with Android Installer (.apk)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.name }}
+          name: "Craquez ${{ steps.tag.outputs.name }} — Instalador Android (.apk)"
+          draft: false
+          prerelease: true
+          generate_release_notes: true
+          body: |
+            ## Craquez 3D — Piloto Android (Unreal Engine 5.8.4)
+
+            Baixe o arquivo **`Craquez-Android-ARM64.apk`** abaixo no seu celular Android (Android 9+ / ARM64 / Vulkan) e instale!
+
+            ### Novidades desta versão
+            - **Jogo-Treino 11vs11** e **Duelo 1vs1 (Atacante x Goleiro)** com troca instantânea na tela (`11v11 / 1v1`)
+            - **Bola FIFA com Efeito Magnus**, arrasto aerodinâmico, grama molhada, deformação elástica e colisão contínua (CCD)
+            - **IA Tática StateTree + GOAP** com correção definitiva da transição `Press -> Intercept` + IA de Goleiro
+            - **Controles Touch Nativos** (`MOVER`, `CHUTE`, `PASSE`, `LANÇAR`, `CORRER`, `TROCAR`, `CLIMA`)
+            - **Estádio Low-Poly Procedural** + 5 presets de clima dinâmico + Placar Neon & Mini-Radar 2D
+          files: |
+            ${{ env.APK_PATH }}
