@@ -1,0 +1,66 @@
+// Copyright Craquez Studio. All Rights Reserved.
+// GPU Compute Shader / Niagara HLSL for procedural pitch grass blades
+// Supports dynamic stadium wind sway + player cleat trample trail deformation.
+
+#pragma once
+
+#include "/Engine/Public/Platform.ush"
+
+struct FGrassBladeInstance
+{
+    float3 BasePosition;
+    float  BladeHeight;
+    float2 BendVector;
+    float  MowStripeMask;
+    float  Wetness;
+};
+
+RWStructuredBuffer<FGrassBladeInstance> OutGrassBlades;
+
+float   TimeSeconds;
+float2  WindVelocity2D;
+float   PitchWetness;
+float3  PlayerFootPositions[22];
+float3  BallWorldPosition;
+
+[numthreads(64, 1, 1)]
+void SimulatePitchGrassCS(uint3 DispatchThreadId : SV_DispatchThreadID)
+{
+    uint Idx = DispatchThreadId.x;
+    FGrassBladeInstance Blade = OutGrassBlades[Idx];
+
+    // 1. Traveling stadium wind gust wave
+    float Phase = dot(Blade.BasePosition.xy, float2(0.014f, 0.011f)) - TimeSeconds * 3.1f;
+    float Gust  = sin(Phase) * 0.65f + cos(Phase * 1.7f) * 0.35f;
+    float2 WindBend = WindVelocity2D * (0.0018f * (0.5f + 0.5f * Gust));
+
+    // 2. Player cleat & ball trample flattening (22 players + ball)
+    float2 TramplePush = float2(0.0f, 0.0f);
+
+    float2 BallDelta = Blade.BasePosition.xy - BallWorldPosition.xy;
+    float  BallDist  = length(BallDelta);
+    if (BallDist < 28.0f && BallDist > 0.01f)
+    {
+        float Strength = saturate(1.0f - BallDist / 28.0f);
+        TramplePush += normalize(BallDelta) * Strength * 1.15f;
+    }
+
+    [unroll]
+    for (int p = 0; p < 22; ++p)
+    {
+        float2 Delta = Blade.BasePosition.xy - PlayerFootPositions[p].xy;
+        float  Dist  = length(Delta);
+        if (Dist < 42.0f && Dist > 0.01f)
+        {
+            float Strength = saturate(1.0f - Dist / 42.0f);
+            TramplePush += normalize(Delta) * Strength * 0.95f;
+        }
+    }
+
+    // 3. Spring-damped blade recovery (wet blades droop slightly heavier)
+    float2 TargetBend = WindBend + TramplePush;
+    Blade.BendVector = lerp(Blade.BendVector, TargetBend, 0.22f);
+    Blade.Wetness = PitchWetness;
+
+    OutGrassBlades[Idx] = Blade;
+}

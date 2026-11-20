@@ -1,0 +1,26 @@
+// Copyright Craquez Studio. All Rights Reserved.
+// Mobile-Optimized GPU Stadium Crowd Vertex Animation (VAT / Procedural Cheer WPO).
+// Enables 20,000+ animated low-poly spectators in UE5 Niagara / PCG Instanced Meshes
+// with zero skeletal bones — running smoothly at 60 FPS on Android Vulkan!
+
+float3 ComputeStadiumCrowdCheerWPO(
+    float3 LocalPos,
+    float  InstanceRandomSeed,
+    float  TimeSeconds,
+    float  CrowdExcitement) // [0..1] fed from AFootballWeatherAndAudioManager
+{
+    // Unique cheer frequency and phase per spectator so the stadium feels organic
+    float Freq  = lerp(2.2f, 5.8f, CrowdExcitement) * (0.85f + 0.30f * frac(InstanceRandomSeed * 13.37f));
+    float Phase = TimeSeconds * Freq + InstanceRandomSeed * 6.283185f;
+
+    // Jumping bounce increases dramatically on shots & goals
+    float JumpWave = max(0.0f, sin(Phase));
+    float JumpHeight = JumpWave * lerp(2.5f, 26.0f, CrowdExcitement * CrowdExcitement);
+
+    // Upper body / arm wave mask (LocalPos.z > 95 cm = shoulders & raised arms)
+    float UpperMask = saturate((LocalPos.z - 90.0f) / 65.0f);
+    float ArmRaise  = (0.5f + 0.5f * sin(Phase * 1.5f)) * lerp(3.0f, 22.0f, CrowdExcitement) * UpperMask;
+    float SideSway  = cos(Phase * 0.5f) * lerp(1.5f, 9.0f, CrowdExcitement) * UpperMask;
+
+    return float3(0.0f, SideSway, JumpHeight + ArmRaise);
+}

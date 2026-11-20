@@ -1,0 +1,23 @@
+// Copyright Craquez Studio. All Rights Reserved.
+// HLSL Material Custom Expression for Volume-Preserving Football Impact Deformation (WPO).
+// Usage inside UE5 Material Editor -> Custom Node -> World Position Offset:
+//   Inputs: LocalPos (float3), ImpactAxis (float3), DeformationAmount (float)
+//   Output: float3 WorldPositionOffset
+
+float3 ComputeFootballSquashWPO(float3 LocalPos, float3 ImpactAxis, float DeformationAmount)
+{
+    float3 Axis = normalize(ImpactAxis + float3(0.0f, 0.0f, 0.0001f));
+    float  ClampedDef = clamp(DeformationAmount, 0.0f, 0.30f);
+
+    // Decompose local vertex into parallel (compression) and perpendicular (bulge) components
+    float  AlongAxis = dot(LocalPos, Axis);
+    float3 ParallelPart = Axis * AlongAxis;
+    float3 PerpPart = LocalPos - ParallelPart;
+
+    // Preserve volume: V = scale_par * scale_perp^2 = 1 => scale_perp = 1 / sqrt(scale_par)
+    float ScalePar  = 1.0f - ClampedDef;
+    float ScalePerp = rsqrt(max(ScalePar, 0.45f));
+
+    float3 DeformedPos = (ParallelPart * ScalePar) + (PerpPart * ScalePerp);
+    return DeformedPos - LocalPos;
+}

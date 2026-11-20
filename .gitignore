@@ -1,0 +1,38 @@
+# Unreal Engine 5.8.4 .gitignore for Craquez (Craquez3D-Neon)
+
+# Build and generated directories
+Binaries/
+Build/
+DerivedDataCache/
+Intermediate/
+Saved/
+Plugins/*/Binaries/
+Plugins/*/Intermediate/
+
+# Visual Studio / Rider / IDE files
+.vs/
+.idea/
+.vscode/
+*.sln
+*.suo
+*.opensdf
+*.sdf
+*.VC.db
+*.VC.opendb
+*.csproj
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+compile_commands.json
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Packaged builds & logs
+*.apk
+*.aab
+*.obb
+*.log
+*.tmp
