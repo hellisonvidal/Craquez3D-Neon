@@ -11,6 +11,8 @@ class UNiagaraComponent;
 class UAudioComponent;
 class USoundBase;
 class USoundAttenuation;
+class UDirectionalLightComponent;
+class USkyLightComponent;
 
 /**
  * Dynamic Stadium Weather & Positional 3D Audio Controller for Craquez:
@@ -61,6 +63,14 @@ public:
 	/** Niagara GPU rain / stadium mist emitter */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Football|Weather")
 	TObjectPtr<UNiagaraComponent> RainNiagaraComponent;
+
+	/** Dynamic Sun / Moon directional light so the stadium is always lit cleanly on Android & PC */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Football|Weather")
+	TObjectPtr<UDirectionalLightComponent> SunMoonLight;
+
+	/** Ambient hemisphere sky fill light */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Football|Weather")
+	TObjectPtr<USkyLightComponent> AmbientSkyLight;
 
 	/** 3D spatialized crowd chant emitters positioned around North/South stands */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Football|Audio")

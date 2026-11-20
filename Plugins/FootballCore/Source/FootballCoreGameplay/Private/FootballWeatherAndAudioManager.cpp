@@ -7,6 +7,8 @@
 #include "FootballStadiumGenerator.h"
 #include "NiagaraComponent.h"
 #include "Components/AudioComponent.h"
+#include "Components/DirectionalLightComponent.h"
+#include "Components/SkyLightComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "EngineUtils.h"
 
@@ -20,6 +22,20 @@ AFootballWeatherAndAudioManager::AFootballWeatherAndAudioManager()
 	RainNiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("RainNiagaraComponent"));
 	RainNiagaraComponent->SetupAttachment(RootComponent);
 	RainNiagaraComponent->bAutoActivate = false;
+
+	SunMoonLight = CreateDefaultSubobject<UDirectionalLightComponent>(TEXT("SunMoonLight"));
+	SunMoonLight->SetupAttachment(RootComponent);
+	SunMoonLight->SetRelativeRotation(FRotator(-48.0f, -35.0f, 0.0f));
+	SunMoonLight->SetIntensity(4.5f);
+	SunMoonLight->SetLightColor(FLinearColor(0.95f, 0.97f, 1.0f));
+	SunMoonLight->SetMobility(EComponentMobility::Movable);
+
+	AmbientSkyLight = CreateDefaultSubobject<USkyLightComponent>(TEXT("AmbientSkyLight"));
+	AmbientSkyLight->SetupAttachment(RootComponent);
+	AmbientSkyLight->bLowerHemisphereIsBlack = false;
+	AmbientSkyLight->SetIntensity(1.6f);
+	AmbientSkyLight->SetLightColor(FLinearColor(0.55f, 0.72f, 0.95f));
+	AmbientSkyLight->SetMobility(EComponentMobility::Movable);
 
 	NorthStandChantAudio = CreateDefaultSubobject<UAudioComponent>(TEXT("NorthStandChantAudio"));
 	NorthStandChantAudio->SetupAttachment(RootComponent);
@@ -76,6 +92,11 @@ void AFootballWeatherAndAudioManager::ApplyWeatherPreset(EFootballWeatherType Ne
 
 	float FloodlightLevel = 0.0f;
 	bool bEnableRain = false;
+	float SunIntensity = 5.0f;
+	FRotator SunRot(-48.0f, -35.0f, 0.0f);
+	FLinearColor SunColor(1.0f, 0.98f, 0.92f);
+	FLinearColor SkyTint(0.55f, 0.75f, 1.0f);
+	float SkyIntensity = 1.6f;
 
 	switch (CurrentWeather)
 	{
@@ -83,18 +104,33 @@ void AFootballWeatherAndAudioManager::ApplyWeatherPreset(EFootballWeatherType Ne
 		ActiveWindVelocityCmPerSec = FVector(80.0f, 40.0f, 0.0f);
 		ActivePitchWetness = 0.0f;
 		FloodlightLevel = 0.0f;
+		SunIntensity = 7.5f;
+		SunRot = FRotator(-58.0f, -35.0f, 0.0f);
+		SunColor = FLinearColor(1.0f, 0.97f, 0.90f);
+		SkyTint = FLinearColor(0.62f, 0.80f, 1.0f);
+		SkyIntensity = 2.0f;
 		break;
 
 	case EFootballWeatherType::GoldenHour:
 		ActiveWindVelocityCmPerSec = FVector(150.0f, -90.0f, 0.0f);
 		ActivePitchWetness = 0.1f;
 		FloodlightLevel = 0.55f;
+		SunIntensity = 5.2f;
+		SunRot = FRotator(-18.0f, -72.0f, 0.0f);
+		SunColor = FLinearColor(1.0f, 0.62f, 0.28f);
+		SkyTint = FLinearColor(0.85f, 0.55f, 0.42f);
+		SkyIntensity = 1.5f;
 		break;
 
 	case EFootballWeatherType::NightFloodlights:
 		ActiveWindVelocityCmPerSec = FVector(110.0f, 60.0f, 0.0f);
 		ActivePitchWetness = 0.20f; // Evening dew
 		FloodlightLevel = 1.0f;
+		SunIntensity = 3.2f; // Overhead stadium canopy fill
+		SunRot = FRotator(-72.0f, 20.0f, 0.0f);
+		SunColor = FLinearColor(0.82f, 0.92f, 1.0f);
+		SkyTint = FLinearColor(0.28f, 0.42f, 0.68f);
+		SkyIntensity = 1.4f;
 		break;
 
 	case EFootballWeatherType::LightRain:
@@ -102,6 +138,11 @@ void AFootballWeatherAndAudioManager::ApplyWeatherPreset(EFootballWeatherType Ne
 		ActivePitchWetness = 0.65f;
 		FloodlightLevel = 1.0f;
 		bEnableRain = true;
+		SunIntensity = 2.6f;
+		SunRot = FRotator(-65.0f, 15.0f, 0.0f);
+		SunColor = FLinearColor(0.72f, 0.84f, 0.95f);
+		SkyTint = FLinearColor(0.32f, 0.42f, 0.54f);
+		SkyIntensity = 1.25f;
 		break;
 
 	case EFootballWeatherType::StormRain:
@@ -109,7 +150,25 @@ void AFootballWeatherAndAudioManager::ApplyWeatherPreset(EFootballWeatherType Ne
 		ActivePitchWetness = 1.0f;
 		FloodlightLevel = 1.0f;
 		bEnableRain = true;
+		SunIntensity = 2.0f;
+		SunRot = FRotator(-68.0f, -15.0f, 0.0f);
+		SunColor = FLinearColor(0.60f, 0.72f, 0.88f);
+		SkyTint = FLinearColor(0.22f, 0.30f, 0.42f);
+		SkyIntensity = 1.05f;
 		break;
+	}
+
+	if (SunMoonLight)
+	{
+		SunMoonLight->SetRelativeRotation(SunRot);
+		SunMoonLight->SetIntensity(SunIntensity);
+		SunMoonLight->SetLightColor(SunColor);
+	}
+	if (AmbientSkyLight)
+	{
+		AmbientSkyLight->SetIntensity(SkyIntensity);
+		AmbientSkyLight->SetLightColor(SkyTint);
+		AmbientSkyLight->RecaptureSky();
 	}
 
 	if (RainNiagaraComponent)

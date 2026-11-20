@@ -2,11 +2,14 @@
 
 #include "FootballHUD.h"
 #include "FootballHUDWidget.h"
+#include "SCraquezTouchControlsOverlay.h"
 #include "FootballMatchGameState.h"
 #include "FootballCharacter.h"
 #include "FootballBallActor.h"
 #include "Engine/Canvas.h"
 #include "Engine/Engine.h"
+#include "Engine/GameViewportClient.h"
+#include "Widgets/SWeakWidget.h"
 #include "EngineUtils.h"
 
 void AFootballHUD::BeginPlay()
@@ -21,6 +24,32 @@ void AFootballHUD::BeginPlay()
 			ActiveHUDWidget->AddToViewport(10);
 		}
 	}
+
+#if PLATFORM_ANDROID
+	const bool bMountTouchOverlay = true;
+#else
+	const bool bMountTouchOverlay = bShowMobileTouchControlsOnDesktop;
+#endif
+
+	if (bMountTouchOverlay && !ActiveHUDWidget && GEngine && GEngine->GameViewport && GetOwningPlayerController())
+	{
+		MobileTouchOverlay = SNew(SCraquezTouchControlsOverlay)
+			.OwningPlayerController(GetOwningPlayerController());
+
+		MobileTouchViewportContainer = SNew(SWeakWidget).PossiblyNullContent(MobileTouchOverlay.ToSharedRef());
+		GEngine->GameViewport->AddViewportWidgetContent(MobileTouchViewportContainer.ToSharedRef(), 20);
+	}
+}
+
+void AFootballHUD::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (MobileTouchViewportContainer.IsValid() && GEngine && GEngine->GameViewport)
+	{
+		GEngine->GameViewport->RemoveViewportWidgetContent(MobileTouchViewportContainer.ToSharedRef());
+	}
+	MobileTouchViewportContainer.Reset();
+	MobileTouchOverlay.Reset();
+	Super::EndPlay(EndPlayReason);
 }
 
 void AFootballHUD::DrawHUD()

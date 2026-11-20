@@ -7,6 +7,7 @@
 #include "FootballHUD.generated.h"
 
 class UFootballHUDWidget;
+class SCraquezTouchControlsOverlay;
 
 /**
  * Craquez Broadcast & Mobile HUD.
@@ -21,11 +22,16 @@ class FOOTBALLCOREUI_API AFootballHUD : public AHUD
 
 public:
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void DrawHUD() override;
 
 	/** Optional UMG Blueprint subclass (e.g., WBP_CraquezMobileHUD) spawned on BeginPlay */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Football|UI")
 	TSubclassOf<UFootballHUDWidget> CustomHUDWidgetClass;
+
+	/** Automatically mount built-in Android Slate touch buttons (always on for Android, optional on PC) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Football|UI")
+	bool bShowMobileTouchControlsOnDesktop = true;
 
 	/** Draw real-time tactical StateTree labels above AI players for debugging */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Football|UI|Debug")
@@ -39,4 +45,7 @@ protected:
 
 	UPROPERTY()
 	TObjectPtr<UFootballHUDWidget> ActiveHUDWidget;
+
+	TSharedPtr<SCraquezTouchControlsOverlay> MobileTouchOverlay;
+	TSharedPtr<class SWidget> MobileTouchViewportContainer;
 };
