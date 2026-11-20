@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Craquez</string>
+    <style name="Theme.Craquez" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowBackground">@android:color/black</item>
+    </style>
+</resources>

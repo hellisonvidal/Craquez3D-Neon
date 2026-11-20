@@ -1,0 +1,48 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.craquezstudio.craquez'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId "com.craquezstudio.craquez"
+        minSdk 26
+        targetSdk 35
+        versionCode 1
+        versionName "0.1.0-pilot"
+    }
+
+    signingConfigs {
+        release {
+            def ksFile = file("craquez-release.jks")
+            if (ksFile.exists()) {
+                storeFile ksFile
+                storePassword System.getenv("CRAQUEZ_KEYSTORE_PASS") ?: "craquez2026"
+                keyAlias System.getenv("CRAQUEZ_KEY_ALIAS") ?: "craquez"
+                keyPassword System.getenv("CRAQUEZ_KEYSTORE_PASS") ?: "craquez2026"
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            def ksFile = file("craquez-release.jks")
+            signingConfig ksFile.exists() ? signingConfigs.release : signingConfigs.debug
+        }
+        debug {
+            applicationIdSuffix ""
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+}

@@ -3,7 +3,7 @@ name: Craquez Android APK Build & Release (UE 5.8.4)
 on:
   push:
     tags:
-      - 'v*'
+      - 'ue5-v*'
   workflow_dispatch:
     inputs:
       version_tag:

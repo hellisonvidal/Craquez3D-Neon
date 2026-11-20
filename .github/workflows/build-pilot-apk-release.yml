@@ -1,0 +1,100 @@
+name: Craquez Android Pilot APK Build & GitHub Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version_tag:
+        description: 'Tag da versão da Release (ex: v0.1.0-android-pilot)'
+        required: true
+        default: 'v0.1.0-android-pilot'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release-apk:
+    name: Build Signed Craquez Android Installer (.apk) & Publish Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Craquez3D-Neon
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Gradle 8.9
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Generate Android Signing Keystore for Installable Release APK
+        run: |
+          keytool -genkeypair -v \
+            -keystore AndroidPilot/app/craquez-release.jks \
+            -storepass craquez2026 \
+            -keypass craquez2026 \
+            -alias craquez \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -dname "CN=Craquez Studio, OU=Mobile, O=Craquez, L=Brasil, ST=SP, C=BR"
+
+      - name: Build Signed Release APK (AndroidPilot)
+        working-directory: AndroidPilot
+        run: |
+          gradle assembleRelease --no-daemon --stacktrace
+          ls -lh app/build/outputs/apk/release/
+
+      - name: Prepare Release APK Filename
+        id: meta
+        run: |
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            TAG="${{ github.ref_name }}"
+          else
+            TAG="${{ github.event.inputs.version_tag || 'v0.1.0-android-pilot' }}"
+          fi
+          APK_OUT="Craquez-${TAG}.apk"
+          cp AndroidPilot/app/build/outputs/apk/release/app-release.apk "${APK_OUT}"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "apk=${APK_OUT}" >> "$GITHUB_OUTPUT"
+          ls -lh "${APK_OUT}"
+
+      - name: Upload APK as GitHub Actions Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Craquez-Android-Installer-APK
+          path: ${{ steps.meta.outputs.apk }}
+          retention-days: 90
+
+      - name: Publish Official GitHub Release with Android Installer (.apk)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.meta.outputs.tag }}
+          name: "Craquez ${{ steps.meta.outputs.tag }} — Instalador Android (.apk)"
+          draft: false
+          prerelease: true
+          generate_release_notes: true
+          body: |
+            ## ⚽ Craquez 3D — Instalador Piloto Android (`.apk`)
+
+            Baixe o arquivo **`${{ steps.meta.outputs.apk }}`** abaixo diretamente no seu celular Android e toque para instalar!
+            *(Android 8.0+ • 100% Single-Player Offline • Tela Horizontal Fullscreen)*
+
+            ### O que você pode jogar agora no celular
+            - **Jogo-Treino 11 vs 11** (`Craquez FC 4-3-3` vs `Rival FC 4-4-2`)
+            - **Duelo 1 vs 1** (`Atacante x Goleiro`) com troca instantânea na tela
+            - **Física Realista da Bola**: **Efeito Magnus** (chutes colocados com curva `DIR`/`ESQ` e rastro luminoso), atrito em grama molhada e deformação elástica no impacto
+            - **Uniformes 3D Separados** (camisa, calção, meião, chuteira e numeração) + Estádio Low-Poly com refletores
+            - **5 Climas Dinâmicos** (`Noite`, `Dia`, `Pôr do Sol`, `Chuva`, `Tempestade`) afetando o vento e a bola + Áudio sintetizado
+            - **Controles Touch Nativos**: Joystick analógico à esquerda + `CHUTE` (segure para força/curva), `PASSE`, `LANÇAR`, `CORRER`, `TROCAR` e `CURVA`
+
+            > **Nota sobre Unreal Engine 5.8.4**: o projeto completo em C++ da UE 5.8.4 (`Craquez.uproject` + plugin `FootballCore` compilado com 0 erros) está neste mesmo repositório. Para gerar também o APK nativo UE 5.8.4 Vulkan via self-hosted runner, use o workflow **`Craquez Android APK Build & Release (UE 5.8.4)`** com tag `ue5-v*`.
+          files: |
+            ${{ steps.meta.outputs.apk }}

@@ -34,5 +34,9 @@ desktop.ini
 *.apk
 *.aab
 *.obb
+*.jks
 *.log
 *.tmp
+AndroidPilot/.gradle/
+AndroidPilot/build/
+AndroidPilot/app/build/
