@@ -9,9 +9,10 @@
 #>
 param(
     [string]$EngineRoot = "C:\Program Files\Epic Games\UE_5.8",
-    [string]$AndroidSdk = "$env:LOCALAPPDATA\Android\Sdk",
+    [string]$AndroidSdk = "",
+    [string]$NdkRoot    = "",
     [string]$JavaHome   = "C:\Program Files\Android\Android Studio\jbr",
-    [string]$ReleaseTag = "v0.1.0-android-pilot",
+    [string]$ReleaseTag = "ue5-v0.1.0-android",
     [switch]$PublishRelease
 )
 
@@ -20,7 +21,16 @@ $ProjectRoot = Split-Path -Parent $PSScriptRoot
 $UProject    = Join-Path $ProjectRoot "Craquez.uproject"
 $ArchiveDir  = Join-Path $ProjectRoot "Build\Android_ASTC"
 
-Write-Host "=== CRAQUEZ 3D — BUILD INSTALADOR ANDROID (.APK) ===" -ForegroundColor Cyan
+Write-Host "=== CRAQUEZ 3D (UE 5.8.4) — BUILD INSTALADOR ANDROID NATIVO (.APK) ===" -ForegroundColor Cyan
+
+# Auto-detect Android SDK (Visual Studio / Program Files x86 or LocalAppData)
+if ([string]::IsNullOrWhiteSpace($AndroidSdk)) {
+    if (Test-Path "C:\Program Files (x86)\Android\android-sdk\platforms\android-36") {
+        $AndroidSdk = "C:\Program Files (x86)\Android\android-sdk"
+    } else {
+        $AndroidSdk = "$env:LOCALAPPDATA\Android\Sdk"
+    }
+}
 
 # 1. Validar Target Platform Android na UE 5.8.4
 $AndroidBinaries = Join-Path $EngineRoot "Engine\Binaries\Android"
@@ -35,26 +45,24 @@ Como ativar (leva ~5 min):
 "@
 }
 
-# 2. Validar Android SDK + NDK r27c (27.2.12479018) + API 36
-$NdkDir = Get-ChildItem "$AndroidSdk\ndk" -Directory -ErrorAction SilentlyContinue | Sort-Object Name -Descending | Select-Object -First 1
-if (!$NdkDir) {
-    Write-Error @"
-[FALTA ANDROID NDK] Nenhum NDK encontrado em $AndroidSdk\ndk!
-Como instalar no Android Studio:
-  1. Abra Android Studio -> More Actions -> SDK Manager
-  2. Aba SDK Platforms: marque 'Android API 36'
-  3. Aba SDK Tools: marque 'Show Package Details' e instale:
-     - NDK (Side by side) 27.2.12479018
-     - CMake 3.22.1
-     - Android SDK Command-line Tools (latest)
-  4. Clique em OK e rode este script novamente!
-"@
+# 2. Auto-detect Android NDK r27c (Visual Studio Program Files x86 or SDK\ndk)
+if ([string]::IsNullOrWhiteSpace($NdkRoot)) {
+    if (Test-Path "C:\Program Files (x86)\Android\AndroidNDK\android-ndk-r27c") {
+        $NdkRoot = "C:\Program Files (x86)\Android\AndroidNDK\android-ndk-r27c"
+    } else {
+        $NdkDir = Get-ChildItem "$AndroidSdk\ndk" -Directory -ErrorAction SilentlyContinue | Sort-Object Name -Descending | Select-Object -First 1
+        if ($NdkDir) { $NdkRoot = $NdkDir.FullName }
+    }
+}
+
+if ([string]::IsNullOrWhiteSpace($NdkRoot) -or !(Test-Path $NdkRoot)) {
+    Write-Error "Android NDK r27c nao encontrado! Verifique C:\Program Files (x86)\Android\AndroidNDK\android-ndk-r27c ou $AndroidSdk\ndk."
 }
 
 $env:ANDROID_HOME     = $AndroidSdk
 $env:ANDROID_SDK_ROOT = $AndroidSdk
-$env:NDKROOT          = $NdkDir.FullName
-$env:ANDROID_NDK_ROOT = $NdkDir.FullName
+$env:NDKROOT          = $NdkRoot
+$env:ANDROID_NDK_ROOT = $NdkRoot
 if (Test-Path $JavaHome) {
     $env:JAVA_HOME = $JavaHome
 }
