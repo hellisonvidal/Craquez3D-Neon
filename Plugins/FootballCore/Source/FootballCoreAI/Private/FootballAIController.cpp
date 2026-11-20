@@ -69,9 +69,9 @@ void AFootballAIController::RefreshTacticalContext(AFootballCharacter* Player, A
 	LiveContext.BallVelocity = Ball->GetBallVelocity();
 	LiveContext.DistanceToBallCm = FVector::Dist2D(Player->GetActorLocation(), LiveContext.BallLocation);
 
-	AFootballCharacter* Owner = Ball->GetCurrentOwnerPlayer();
-	LiveContext.bIHavePossession = (Owner == Player);
-	LiveContext.bMyTeamHasPossession = (Owner != nullptr && Owner->TeamSide == Player->TeamSide);
+	AFootballCharacter* BallOwner = Ball->GetCurrentOwnerPlayer();
+	LiveContext.bIHavePossession = (BallOwner == Player);
+	LiveContext.bMyTeamHasPossession = (BallOwner != nullptr && BallOwner->TeamSide == Player->TeamSide);
 	LiveContext.bBallIsLooseOrInFlight = Ball->IsBallLooseOrInFlight();
 
 	const float SprintSpeed = 680.0f;

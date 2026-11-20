@@ -16,6 +16,7 @@ public class FootballCoreGameplay : ModuleRules
 			"Engine",
 			"InputCore",
 			"EnhancedInput",
+			"AIModule",
 			"PhysicsCore",
 			"Chaos",
 			"ProceduralMeshComponent",

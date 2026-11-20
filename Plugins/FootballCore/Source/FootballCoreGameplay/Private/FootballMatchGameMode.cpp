@@ -10,6 +10,7 @@
 #include "AIController.h"
 #include "GameFramework/HUD.h"
 #include "GameFramework/PlayerController.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "EngineUtils.h"
 
 TSubclassOf<AAIController> AFootballMatchGameMode::RegisteredDefaultAIControllerClass = nullptr;
@@ -272,7 +273,7 @@ void AFootballMatchGameMode::SpawnDuel1v1Actors()
 AFootballCharacter* AFootballMatchGameMode::SpawnSinglePlayer(
 	int32 PlayerId,
 	EFootballTeamSide Side,
-	EFootballPlayerRole Role,
+	EFootballPlayerRole InPlayerRole,
 	const FVector& SpawnLoc,
 	const FFootballKitConfig& Kit,
 	bool bHumanControlled)
@@ -294,7 +295,7 @@ AFootballCharacter* AFootballMatchGameMode::SpawnSinglePlayer(
 		return nullptr;
 	}
 
-	Player->ConfigurePlayer(PlayerId, Side, Role, SpawnLoc, Kit);
+	Player->ConfigurePlayer(PlayerId, Side, InPlayerRole, SpawnLoc, Kit);
 	AllPlayers.Add(Player);
 
 	if (bHumanControlled)

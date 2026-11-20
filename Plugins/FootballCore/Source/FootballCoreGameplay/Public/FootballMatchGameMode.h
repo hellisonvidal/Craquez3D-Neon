@@ -84,7 +84,7 @@ protected:
 	AFootballCharacter* SpawnSinglePlayer(
 		int32 PlayerId,
 		EFootballTeamSide Side,
-		EFootballPlayerRole Role,
+		EFootballPlayerRole InPlayerRole,
 		const FVector& SpawnLoc,
 		const FFootballKitConfig& Kit,
 		bool bHumanControlled);

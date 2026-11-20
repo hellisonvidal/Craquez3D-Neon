@@ -148,12 +148,12 @@ struct FOOTBALLCORENETWORKING_API FFootballDeterministicPlayerInput
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Football|Networking")
 	int32 PlayerSlotIndex = 0;
 
-	/** Quantized stick input in [-1000, +1000] */
+	/** Quantized stick input in [-1000, +1000] (stored as int32 for Blueprint compatibility, packed on wire) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Football|Networking")
-	int16 MoveX = 0;
+	int32 MoveX = 0;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Football|Networking")
-	int16 MoveY = 0;
+	int32 MoveY = 0;
 
 	/** Bitmask: bit0=Shoot, bit1=Pass, bit2=Lob, bit3=Sprint, bit4=Tackle, bit5=Switch */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Football|Networking")
@@ -163,9 +163,9 @@ struct FOOTBALLCORENETWORKING_API FFootballDeterministicPlayerInput
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Football|Networking")
 	uint8 KickChargeByte = 0;
 
-	/** Quantized Magnus curve input [-127..127] */
+	/** Quantized Magnus curve input [-127..127] (stored as int32 for Blueprint compatibility) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Football|Networking")
-	int8 SpinCurveByte = 0;
+	int32 SpinCurveValue = 0;
 };
 
 /**
