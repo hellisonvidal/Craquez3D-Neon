@@ -74,6 +74,25 @@ jobs:
           Write-Host "ANDROID_HOME=$sdk"
           Write-Host "NDKROOT=$ndkPath"
 
+      - name: Clean Stale Build Artifacts (Fix: Failed to open descriptor file)
+        shell: pwsh
+        run: |
+          Write-Host "Limpando artefatos de build antigos (Intermediate, Saved, Binaries, Build)..." -ForegroundColor Yellow
+          $dirsToClean = @(
+            "Intermediate",
+            "Saved",
+            "Binaries",
+            "Build"
+          )
+          foreach ($dir in $dirsToClean) {
+            $fullPath = Join-Path $env:GITHUB_WORKSPACE $dir
+            if (Test-Path $fullPath) {
+              Remove-Item -Recurse -Force -Path $fullPath -ErrorAction SilentlyContinue
+              Write-Host "Removido: $fullPath" -ForegroundColor Green
+            }
+          }
+          Write-Host "Limpeza concluída. Iniciando build limpo..." -ForegroundColor Cyan
+
       - name: Build, Cook & Package Craquez Android APK (ARM64 ASTC)
         shell: pwsh
         run: |

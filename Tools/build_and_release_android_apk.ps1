@@ -23,6 +23,18 @@ $ArchiveDir  = Join-Path $ProjectRoot "Build\Android_ASTC"
 
 Write-Host "=== CRAQUEZ 3D (UE 5.8.4) — BUILD INSTALADOR ANDROID NATIVO (.APK) ===" -ForegroundColor Cyan
 
+# 0. Limpar artefatos de build antigos (corrige erro "Failed to open descriptor file ../../../craquez/craquez3project")
+Write-Host "Limpando artefatos de build antigos (Intermediate, Saved, Binaries, Build)..." -ForegroundColor Yellow
+$dirsToClean = @("Intermediate", "Saved", "Binaries", "Build")
+foreach ($dir in $dirsToClean) {
+    $fullPath = Join-Path $ProjectRoot $dir
+    if (Test-Path $fullPath) {
+        Remove-Item -Recurse -Force -Path $fullPath -ErrorAction SilentlyContinue
+        Write-Host "Removido: $fullPath" -ForegroundColor Green
+    }
+}
+Write-Host "Limpeza concluída. Iniciando build limpo..." -ForegroundColor Cyan
+
 # Auto-detect Android SDK (Visual Studio / Program Files x86 or LocalAppData)
 if ([string]::IsNullOrWhiteSpace($AndroidSdk)) {
     if (Test-Path "C:\Program Files (x86)\Android\android-sdk\platforms\android-36") {
